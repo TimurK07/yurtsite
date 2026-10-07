@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="3D-юрта: история Казахского ханства XV — начала XVIII века.">
+<title>Юрта Казахского ханства</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yeseva+One&family=Onest:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --ink:#F6EBD9; --muted:#CDBB9F; --faint:#9A8770; --gold:#E2B567; --gold2:#F3D79A; --red:#B5382C;
+  --glass:rgba(28,18,11,.78); --glass2:rgba(44,29,18,.86); --line:rgba(226,181,103,.28);
+  --display:"Yeseva One",Georgia,"Times New Roman",serif; --body:"Onest","Segoe UI",Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:#1A120B;color:var(--ink);font-family:var(--body);overflow:hidden}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+/* overlays */
+.overlay{position:fixed;inset:0;display:flex;align-items:center;padding:24px clamp(16px,6vw,96px);pointer-events:none;z-index:10}
+.overlay > *{pointer-events:auto}
+.intro{background:linear-gradient(90deg,rgba(20,12,6,.82) 0%,rgba(20,12,6,.45) 45%,rgba(20,12,6,0) 70%)}
+.intro-in{max-width:620px;display:flex;flex-direction:column;gap:18px}
+.eyebrow{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.intro h1{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(44px,6.4vw,92px);line-height:.98;text-shadow:0 4px 30px rgba(0,0,0,.5)}
+.intro p{margin:0;font-size:clamp(16px,1.4vw,20px);line-height:1.55;color:var(--muted);max-width:44ch}
+.cta{align-self:flex-start;display:inline-flex;align-items:center;gap:12px;background:var(--gold);color:#2A1A0C;border:0;border-radius:999px;padding:15px 26px 15px 22px;font-weight:600;font-size:18px;cursor:pointer;box-shadow:0 10px 30px rgba(226,181,103,.35);transition:transform .2s, box-shadow .2s}
+.cta:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(226,181,103,.5)}
+.cta i{width:10px;height:10px;border-radius:50%;background:#2A1A0C;box-shadow:0 0 0 4px rgba(42,26,12,.2)}
+.keys{font-size:13px;color:var(--faint)}
+.loading{position:fixed;inset:0;display:grid;place-items:center;background:#1A120B;z-index:30;transition:opacity .8s}
+.loading.done{opacity:0;pointer-events:none}
+.loading div{display:flex;flex-direction:column;align-items:center;gap:14px;font-family:var(--display);font-size:22px;color:var(--gold2)}
+.bar{width:220px;height:3px;background:rgba(226,181,103,.2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+
+/* hud */
+.hud{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(14px + env(safe-area-inset-top,0px)) 18px 14px;z-index:8;pointer-events:none}
+.hud > *{pointer-events:auto}
+.brand{font-family:var(--display);font-size:22px;color:var(--gold2);text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.brand small{display:block;font-family:var(--body);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.hud-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.ghost{background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:9px 16px;cursor:pointer;font-size:14px;backdrop-filter:blur(8px)}
+.ghost:hover{border-color:var(--gold)}
+
+/* hotspot labels */
+#labels{position:fixed;inset:0;pointer-events:none;z-index:6}
+.hs{position:absolute;left:0;top:0;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px;background:none;border:0;padding:0}
+.hs b{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(28,18,11,.85);border:2px solid var(--gold);font-family:var(--display);font-weight:400;font-size:16px;color:var(--gold2);box-shadow:0 0 0 0 rgba(226,181,103,.6);animation:pulse 2.2s infinite}
+.hs span{background:rgba(28,18,11,.85);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;white-space:nowrap;opacity:0;transform:translateX(-6px);transition:.25s}
+.hs:hover span,.hs.on span{opacity:1;transform:none}
+.hs.on b{background:var(--gold);color:#2A1A0C;animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(226,181,103,.55)}70%{box-shadow:0 0 0 14px rgba(226,181,103,0)}100%{box-shadow:0 0 0 0 rgba(226,181,103,0)}}
+
+/* panel */
+.panel{position:fixed;top:calc(74px + env(safe-area-inset-top,0px));right:18px;bottom:96px;width:min(440px,calc(100% - 36px));background:var(--glass2);border:1px solid var(--line);border-radius:20px;backdrop-filter:blur(14px);z-index:9;display:flex;flex-direction:column;overflow:hidden;transform:translateX(calc(100% + 30px));transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+.panel.open{transform:none}
+.p-head{padding:22px 24px 14px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:flex-start}
+.p-num{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:#2A1A0C;font-family:var(--display);font-size:22px}
+.p-kick{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.p-head h2{margin:4px 0 0;font-family:var(--display);font-weight:400;font-size:clamp(24px,2.2vw,30px);line-height:1.12;text-wrap:balance}
+.p-body{padding:16px 24px 18px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.p-lead{margin:0;font-size:16.5px;line-height:1.55;color:#EADCC6}
+.facts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.facts li{background:rgba(255,236,200,.05);border:1px solid rgba(226,181,103,.14);border-radius:12px;padding:10px 13px;font-size:15px;line-height:1.45;color:#E6D7BF}
+.facts li b{display:block;font-weight:600;color:var(--gold2);font-size:13.5px;letter-spacing:.02em;margin-bottom:2px}
+.p-sub{margin:4px 0 0;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.p-nav{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.p-nav button{flex:1;background:rgba(255,236,200,.06);border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;font-size:14px}
+.p-nav button:hover{border-color:var(--gold)}
+.p-nav .close{flex:none;width:44px}
+
+/* dots */
+.dots{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:6px;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:6px;z-index:8;backdrop-filter:blur(10px);max-width:calc(100% - 24px);overflow-x:auto}
+.dot{display:flex;align-items:center;gap:8px;border:0;background:none;border-radius:999px;padding:7px 12px 7px 7px;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap}
+.dot b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--gold);font-family:var(--display);font-weight:400;font-size:12px;color:var(--gold2)}
+.dot:hover{background:rgba(255,236,200,.06)}
+.dot.on{background:var(--gold);color:#2A1A0C}
+.dot.on b{border-color:#2A1A0C;color:#2A1A0C}
+
+/* final */
+.final{background:radial-gradient(800px 500px at 50% 50%,rgba(20,12,6,.55),rgba(20,12,6,.88));justify-content:center}
+.final{overflow-y:auto}
+.final-in{max-width:820px;width:100%;display:flex;flex-direction:column;gap:16px}
+.final h2{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(34px,4.6vw,60px);line-height:1.05}
+.final p{margin:0;color:var(--muted);font-size:17px;line-height:1.55;max-width:60ch}
+.sum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:6px 0}
+.sum div{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14.5px;line-height:1.4;display:flex;gap:10px}
+.sum b{flex:none;font-family:var(--display);font-weight:400;color:var(--gold2)}
+.toast{position:fixed;left:50%;top:calc(80px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:14px;color:var(--muted);z-index:7;transition:opacity .6s;pointer-events:none}
+
+@media (max-width:760px){
+  .panel{top:auto;left:12px;right:12px;width:auto;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-height:56%;transform:translateY(calc(100% + 100px))}
+  .dot span{display:none}
+  .dot{padding:5px}
+  .sum{grid-template-columns:1fr}
+  .final{align-items:flex-start;padding-top:calc(28px + env(safe-area-inset-top,0px));padding-bottom:40px}
+  .hud .ghost{padding:7px 12px;font-size:13px}
+  .intro{background:linear-gradient(0deg,rgba(20,12,6,.88) 0%,rgba(20,12,6,.5) 55%,rgba(20,12,6,.1) 100%);align-items:flex-end;padding-bottom:40px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<canvas id="c" aria-label="3D-юрта"></canvas>
+
+<div class="loading" id="loading"><div>Ставим юрту…<span class="bar"><i id="loadbar"></i></span></div></div>
+
+<div class="overlay intro" id="intro">
+  <div class="intro-in">
+    <div class="eyebrow">История Казахстана · XV — начало XVIII века</div>
+    <h1>Казахское<br>ханство</h1>
+    <p>Войдите в юрту. Семь предметов внутри расскажут историю ханства: от первых летописей до жыраулар и домбыры.</p>
+    <button class="cta" id="enter" type="button"><i></i>Войти в юрту</button>
+    <span class="keys">Мышью — осмотреться · ← → — предметы · Esc — общий вид</span>
+  </div>
+</div>
+
+<header class="hud" id="hud" hidden>
+  <div class="brand">Шаңырақ<small>Казахское ханство · XV–XVIII вв.</small></div>
+  <div class="hud-btns">
+    <button class="ghost" id="overview" type="button">Общий вид</button>
+    <button class="ghost" id="exit" type="button">Выйти через шанырак ↑</button>
+  </div>
+</header>
+
+<div id="labels"></div>
+<div class="toast" id="toast" hidden>Нажмите на светящийся номер или предмет</div>
+
+<aside class="panel" id="panel" aria-live="polite">
+  <div class="p-head"><div class="p-num" id="pNum">1</div><div><div class="p-kick" id="pKick"></div><h2 id="pTitle"></h2></div></div>
+  <div class="p-body" id="pBody"></div>
+  <div class="p-nav"><button type="button" id="pPrev">← Назад</button><button type="button" id="pNext">Дальше →</button><button type="button" class="close" id="pClose" aria-label="Закрыть">✕</button></div>
+</aside>
+
+<nav class="dots" id="dots" hidden aria-label="Предметы в юрте"></nav>
+
+<div class="overlay final" id="final" hidden>
+  <div class="final-in">
+    <div class="eyebrow">Итоги</div>
+    <h2>Шанырақ — символ единства</h2>
+    <p>Шанырак — венец юрты — передавался от отца к младшему сыну и хранил память рода. Сегодня он изображён на гербе Казахстана. Как шанырак держит все уыки юрты, так ханство объединило казахские роды.</p>
+    <div class="sum" id="sum"></div>
+    <button class="cta" id="back" type="button"><i></i>Вернуться в юрту</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>window.THREE || document.write('<script src="three.min.js"><\/script>')</script>
+<script>
+(function () {
+"use strict";
+const A = "assets/";
+const ITEMS = [
+  { key:"shezhire", img:"shezhire", ang:315, y:1.2, h:0.95, kick:"Шежіре · источники", title:"Источники и историография",
+    short:"Источники",
+    lead:"Историю ханства мы знаем из летописей соседей, посольских документов и родословных шежіре, которые казахи передавали из поколения в поколение.",
+    facts:[["1509 · Фазлаллах ибн Рузбихан","«Михман-наме-йи Бухара» — очевидец описал войско, быт и кочевья казахов."],
+      ["1546 · Мухаммед Хайдар Дулати","«Тарих-и Рашиди» — главный рассказ об образовании Казахского ханства."],
+      ["1602 · Кадыргали Жалаири","«Сборник летописей» — первая история, написанная казахом."],
+      ["XVII в. · Абулгази","«Родословное древо тюрков» — история степных династий."],
+      ["XVI–XVIII вв. · Русские архивы","Посольские документы и переписка ханов с Москвой."],
+      ["Историография","XIX в.: А. Левшин, Ч. Валиханов, В. Вельяминов-Зернов. XX в.: С. Асфендияров, Т. Султанов, К. Пищулина."]] },
+  { key:"tamga", img:"tamga", ang:270, y:1.15, h:0.85, kick:"Тамги родов · этноним", title:"Что значит слово «казах»",
+    short:"Этноним",
+    lead:"Слово «казах» сначала было не названием народа, а словом о человеке: так называли того, кто ушёл из-под чужой власти и живёт вольно.",
+    facts:[["Значение","«Свободный, вольный человек», а также «беглец, изгнанник»."],
+      ["1245 · первая запись","В арабско-кыпчакском словаре слово «казак» объясняется как «одинокий, бесприютный, изгнанник»."],
+      ["Социальный смысл","«Казаковать» — уйти от хана и жить вольно. Так в 1465 году поступили люди Керея и Жанибека."],
+      ["Этнический смысл","В XVI веке «казах» становится именем народа. Дулати пишет об «узбек-казахах», а позже — просто о казахах."],
+      ["Тамги","У каждого рода был свой знак — им метили скот и имущество. Вместе тамги показывают, из скольких родов сложился народ."]] },
+  { key:"tug", img:"tug", ang:225, y:0, h:1.75, floor:true, kick:"Три туга · жузы", title:"Образование трёх жузов",
+    short:"Жузы",
+    lead:"Казахи делятся на три жуза: Ұлы (Старший), Орта (Средний) и Кіші (Младший). Когда и почему они появились, историки спорят до сих пор.",
+    facts:[["Легендарная версия","У прародителя Алаша-хана было три сына — Ақарыс, Жанарыс и Бекарыс. От них пошли три жуза."],
+      ["Географическая версия","Жузы сложились в трёх природных зонах со своими пастбищами и кочевыми путями."],
+      ["Военно-политическая версия","Жузы выросли из деления войска на правое крыло, левое крыло и центр, как было принято у степных государств."],
+      ["Время образования","Учёные называют разные даты — от XIV до XVII века. Точная дата неизвестна."],
+      ["Где кочевали","Старший — Жетысу и юг. Средний — центр, север и восток. Младший — запад."]] },
+  { key:"yarlyk", img:"yarlyk", ang:180, y:1.25, h:1.0, kick:"Ханская грамота · XV–XVI вв.", title:"Политика и дипломатия XV–XVI веков",
+    short:"XV–XVI вв.",
+    lead:"За сто лет ханство из небольшого союза родов стало сильным государством, с которым считались Бухара, Моголистан и Москва.",
+    facts:[["1465","Керей и Жанибек основали ханство в долине реки Чу."],
+      ["1500-е","Хан Бурундук воюет с Мухаммедом Шейбани за города на Сырдарье."],
+      ["1511–1521 · Касым-хан","По словам Дулати, под его властью больше миллиона человек. Законы «Қасым ханның қасқа жолы». Связи с Москвой."],
+      ["1538–1580 · Хакназар","Заново объединил ханство после смуты, подчинил часть ногаев."],
+      ["1594 · посольство","Посол хана Тауекеля Кул-Мухаммед в Москве ведёт переговоры о союзе."],
+      ["1598 · Тауекель","Взял Ташкент и Самарканд, осадил Бухару."]] },
+  { key:"letter", img:"letter", ang:135, y:0.95, h:0.72, table:true, kick:"Посольское письмо · XVII–XVIII вв.", title:"Политика и дипломатия XVII — начала XVIII века",
+    short:"XVII–XVIII вв.",
+    lead:"Главная угроза этого времени — Джунгарское ханство. Казахи отвечали законами, единством жузов и дипломатией.",
+    facts:[["1598–1628 · Есим-хан","Законы «Есім ханның ескі жолы». Столица — Туркестан."],
+      ["1643 · Орбулак","Жангир-хан с 600 воинами сдержал огромную армию джунгар, на помощь пришёл Жалантос-батыр."],
+      ["1680–1715 · Тауке-хан","Свод законов «Жеті жарғы». Совет трёх биев: Төле, Қазыбек и Әйтеке."],
+      ["1723 · «Ақтабан шұбырынды»","«Годы великого бедствия»: нашествие джунгар и массовый исход казахов."],
+      ["1726–1729 · единство","Курултай в Ордабасы, победы над джунгарами при Буланты и Аңырақае."],
+      ["1731","Абулхаир, хан Младшего жуза, принимает подданство России."]] },
+  { key:"sandyk", img:"sandyk", ang:90, y:0, h:1.2, floor:true, kick:"Сундук на төре · общество", title:"Социальная структура и хозяйство",
+    short:"Общество",
+    lead:"В юрте у каждого своё место: на төре, напротив входа, — почётные гости и старшие. Так же по местам было устроено и общество.",
+    facts:[["Ақсүйек — «белая кость»","Төре — потомки Чингисхана, только они могли быть ханами и султанами. Қожа — духовенство."],
+      ["Қарасүйек — «чёрная кость»","Бии — судьи и знатоки обычаев. Батыры — воины, звание по заслугам. Шаруа — простые скотоводы."],
+      ["Төлеңгіты и құлы","Служилые люди при хане и зависимые, чаще всего пленники."],
+      ["Төрт түлік","Основа хозяйства — четыре вида скота: лошади, верблюды, коровы, овцы и козы."],
+      ["Кочевой круг","Қыстау — зима, көктеу — весна, жайлау — лето, күзеу — осень."],
+      ["Города и торговля","На юге — земледелие и города: Туркестан, Сауран, Сыгнак, Сайрам. Торговля с Бухарой, Ташкентом и Россией."]] },
+  { key:"dombyra", img:"dombyra", ang:45, y:0, h:1.2, floor:true, lean:0.1, kick:"Домбыра · культура", title:"Духовная и материальная культура",
+    short:"Культура",
+    lead:"Культура кочевников жила в слове, музыке и вещах. Многое из неё казахи хранят и сегодня.",
+    facts:[["Жыраулар — поэты-советники ханов","Асан Қайғы (XV в.), Қазтуған, Шалкиіз, Доспамбет (XVI в.), Ақтамберді, Бұқар жырау (XVIII в.)."],
+      ["Эпос","«Қобыланды батыр», «Алпамыс батыр», «Ер Тарғын»."],
+      ["Музыка","Кюй, домбыра и кобыз. Айтыс — состязание акынов."],
+      ["Святыни","Мавзолей Ходжи Ахмеда Ясави в Туркестане — духовный центр ханства, рядом хоронили ханов."],
+      ["Вещи","Юрта, текемет и сырмак, тұскиіз, ювелирные украшения, шапан и саукеле."]] },
+];
+
+// ---------- renderer / scene
+const canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const FOG = new THREE.Color(0xd99a55);
+scene.fog = new THREE.Fog(FOG, 25, 260);
+scene.background = FOG.clone();
+const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 2500);
+
+const manager = new THREE.LoadingManager();
+const loader = new THREE.TextureLoader(manager);
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+function tex(name, rx, ry, wrap) {
+  const t = loader.load(A + name);
+  t.encoding = THREE.sRGBEncoding; t.anisotropy = maxAniso;
+  if (rx) { t.wrapS = wrap || THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry || 1); }
+  return t;
+}
+manager.onProgress = (u, l, t) => { document.getElementById("loadbar").style.width = (l / t * 100) + "%"; };
+
+// ---------- sky & ground
+const skyT = tex("sky.jpg", 2, 1, THREE.MirroredRepeatWrapping);
+const sky = new THREE.Mesh(new THREE.CylinderGeometry(600, 600, 1256, 96, 1, true),
+  new THREE.MeshBasicMaterial({ map: skyT, side: THREE.BackSide, fog: false, toneMapped: false }));
+sky.rotation.y = Math.PI / 2; scene.add(sky);
+const domeMat = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { top: { value: new THREE.Color(0x3d5a86) }, mid: { value: new THREE.Color(0xc98a52) } },
+  vertexShader: "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+  fragmentShader: "uniform vec3 top; uniform vec3 mid; varying vec3 vP; void main(){ float h = clamp(normalize(vP).y*1.6,0.,1.); gl_FragColor = vec4(mix(mid, top, h), 1.); }" });
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 16), domeMat));
+
+function noiseCanvas(w, base, spread, strokes) {
+  const c = document.createElement("canvas"); c.width = c.height = w; const g = c.getContext("2d");
+  g.fillStyle = base; g.fillRect(0, 0, w, w);
+  for (let i = 0; i < strokes; i++) {
+    const x = Math.random() * w, y = Math.random() * w, l = 6 + Math.random() * 18;
+    const s = spread[Math.floor(Math.random() * spread.length)];
+    g.strokeStyle = s; g.globalAlpha = .35 + Math.random() * .5; g.lineWidth = 1 + Math.random() * 1.5;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (Math.random() - .5) * 6, y - l); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = maxAniso; return t;
+}
+const groundT = noiseCanvas(512, "#8a6328", ["#b48a3e", "#6e4c1f", "#c79b4b", "#5d4019", "#a07a34"], 5000);
+groundT.repeat.set(140, 140);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(560, 64), new THREE.MeshStandardMaterial({ map: groundT, roughness: 1, metalness: 0 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+// grass tufts
+(function () {
+  const g = new THREE.ConeGeometry(0.012, 0.42, 3); g.translate(0, 0.21, 0);
+  const m = new THREE.MeshStandardMaterial({ color: 0xc89a4a, roughness: 1 });
+  const n = 16000, im = new THREE.InstancedMesh(g, m, n), d = new THREE.Object3D(), col = new THREE.Color();
+  let k = 0;
+  while (k < n) {
+    const r = 3.6 + Math.pow(Math.random(), .7) * 38, a = Math.random() * Math.PI * 2;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (z > 2.5 && Math.abs(x) < 0.9 && z < 8) continue; // path to door
+    d.position.set(x, 0, z); d.rotation.set((Math.random() - .5) * .5, Math.random() * 6.28, (Math.random() - .5) * .5);
+    const s = .45 + Math.random() * .75; d.scale.set(s, s * (.7 + Math.random() * .8), s); d.updateMatrix();
+    im.setMatrixAt(k, d.matrix); col.setHSL(.1 + Math.random() * .03, .45 + Math.random() * .2, .38 + Math.random() * .22); im.setColorAt(k, col); k++;
+  }
+  scene.add(im);
+})();
+
+// lights
+const sun = new THREE.DirectionalLight(0xffb070, 2.6);
+sun.position.set(-6, 7, -40); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 5, far: 90 });
+sun.shadow.bias = -0.0008; scene.add(sun);
+const hemi = new THREE.HemisphereLight(0xffd8a8, 0x4a2e14, 0.65); scene.add(hemi);
+
+// ---------- yurt
+const R = 3, HW = 1.7, TOP = 3.3, RING = 0.58, GAP = 0.17, DOORH = 1.45;
+const felt = tex("felt.jpg", 7, 1.2), feltRoof = tex("felt.jpg", 9, 2.5), feltIn = tex("felt.jpg", 7, 1.2);
+const band = tex("band.jpg", 9, 1, THREE.MirroredRepeatWrapping);
+const yurt = new THREE.Group(); scene.add(yurt);
+const feltMat = new THREE.MeshStandardMaterial({ map: felt, roughness: .97, color: 0xf3eadc });
+// walls with door gap (door at +z, theta=0)
+const wall = new THREE.Mesh(new THREE.CylinderGeometry(R, R, HW, 96, 1, true, GAP, Math.PI * 2 - GAP * 2), feltMat);
+wall.position.y = HW / 2; wall.castShadow = true; wall.receiveShadow = true; yurt.add(wall);
+const lintel = new THREE.Mesh(new THREE.CylinderGeometry(R, R, HW - DOORH, 12, 1, true, -GAP, GAP * 2), feltMat);
+lintel.position.y = DOORH + (HW - DOORH) / 2; yurt.add(lintel);
+const bandM = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.34, 96, 1, true, GAP, Math.PI * 2 - GAP * 2),
+  new THREE.MeshStandardMaterial({ map: band, roughness: .9 }));
+bandM.position.y = 0.72; yurt.add(bandM);
+const bandTop = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.014, R + 0.014, 0.22, 96, 1, true),
+  new THREE.MeshStandardMaterial({ map: tex("band.jpg", 12, 1, THREE.MirroredRepeatWrapping), roughness: .9 }));
+bandTop.position.y = HW - 0.11; yurt.add(bandTop);
+// roof (lathe)
+const prof = [];
+for (let i = 0; i <= 24; i++) { const t = i / 24; const r = R + 0.05 - (R + 0.05 - RING) * t; const y = HW - 0.02 + (TOP - HW) * (Math.sin(t * Math.PI / 2) * .85 + t * .15); prof.push(new THREE.Vector2(r, y)); }
+const roof = new THREE.Mesh(new THREE.LatheGeometry(prof, 96), new THREE.MeshStandardMaterial({ map: feltRoof, roughness: .97, color: 0xf0e6d6, side: THREE.FrontSide }));
+roof.castShadow = true; roof.receiveShadow = true; yurt.add(roof);
+const roofIn = new THREE.Mesh(new THREE.LatheGeometry(prof.map((p) => new THREE.Vector2(p.x - 0.03, p.y - 0.03)), 96),
+  new THREE.MeshStandardMaterial({ map: tex("felt.jpg", 9, 2.5), roughness: 1, color: 0x7a634c, side: THREE.BackSide }));
+yurt.add(roofIn);
+// roof ropes (dark bands)
+const ropeMat = new THREE.MeshStandardMaterial({ color: 0x5a2a17, roughness: .8 });
+for (let i = 0; i < 12; i++) {
+  const a = i / 12 * Math.PI * 2 + 0.26; if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.3) continue;
+  const pts = prof.map((p) => new THREE.Vector3(Math.sin(a) * (p.x + 0.015), p.y + 0.01, Math.cos(a) * (p.x + 0.015)));
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 30, 0.018, 5, false), ropeMat); yurt.add(tube);
+}
+// shanyrak
+const wood = new THREE.MeshStandardMaterial({ color: 0x8a4a22, roughness: .55, metalness: .05 });
+const ringM = new THREE.Mesh(new THREE.TorusGeometry(RING, 0.07, 12, 64), wood); ringM.rotation.x = Math.PI / 2; ringM.position.y = TOP; ringM.castShadow = true; yurt.add(ringM);
+for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+  const ang = i * Math.PI / 2, off = (j ? 1 : -1) * 0.13;
+  const dir = new THREE.Vector3(Math.cos(ang), 0, Math.sin(ang)), nrm = new THREE.Vector3(-Math.sin(ang), 0, Math.cos(ang)).multiplyScalar(off);
+  const p0 = dir.clone().multiplyScalar(-RING + .03).add(nrm).setY(TOP), p2 = dir.clone().multiplyScalar(RING - .03).add(nrm).setY(TOP), p1 = nrm.clone().setY(TOP + 0.32);
+  yurt.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(p0, p1, p2), 24, 0.03, 6, false), wood));
+}
+// door
+function doorTexture() {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 512; const g = c.getContext("2d");
+  g.fillStyle = "#8f2a1c"; g.fillRect(0, 0, 256, 512);
+  g.strokeStyle = "#e2b567"; g.lineWidth = 8; g.strokeRect(14, 14, 228, 484);
+  g.lineWidth = 4; g.strokeRect(34, 34, 188, 444);
+  g.fillStyle = "#e2b567";
+  for (const cy of [140, 372]) {
+    g.beginPath(); g.moveTo(128, cy - 70); g.bezierCurveTo(190, cy - 60, 190, cy + 10, 128, cy); g.bezierCurveTo(66, cy + 10, 66, cy - 60, 128, cy - 70); g.fill();
+    g.beginPath(); g.arc(128, cy + 40, 26, 0, Math.PI * 2); g.lineWidth = 6; g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+}
+const doorT = doorTexture();
+const doorW = 2 * R * Math.sin(GAP) - 0.04;
+const leafMat = new THREE.MeshStandardMaterial({ map: doorT, roughness: .6 });
+const doorFrame = new THREE.Group(); doorFrame.position.set(0, 0, R * Math.cos(GAP)); yurt.add(doorFrame);
+const fw = new THREE.MeshStandardMaterial({ color: 0x6b3518, roughness: .6 });
+[-1, 1].forEach((s) => { const p = new THREE.Mesh(new THREE.BoxGeometry(0.08, DOORH + 0.06, 0.12), fw); p.position.set(s * (doorW / 2 + 0.03), DOORH / 2, 0); p.castShadow = true; doorFrame.add(p); });
+const topBar = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.16, 0.08, 0.12), fw); topBar.position.set(0, DOORH + 0.03, 0); doorFrame.add(topBar);
+const leaves = [-1, 1].map((s) => {
+  const pivot = new THREE.Group(); pivot.position.set(s * doorW / 2, 0, 0);
+  const leaf = new THREE.Mesh(new THREE.BoxGeometry(doorW / 2, DOORH, 0.04), leafMat); leaf.position.set(-s * doorW / 4, DOORH / 2, 0); leaf.castShadow = true;
+  pivot.add(leaf); doorFrame.add(pivot); return { pivot, s };
+});
+// interior: inner wall, kerege lattice, uyk poles, floor
+const inner = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.03, R - 0.03, HW, 96, 1, true, GAP, Math.PI * 2 - GAP * 2),
+  new THREE.MeshStandardMaterial({ map: feltIn, color: 0x7a6248, roughness: 1, side: THREE.BackSide }));
+inner.position.y = HW / 2; yurt.add(inner);
+const kerMat = new THREE.MeshStandardMaterial({ color: 0x8a4a22, roughness: .6 });
+(function kerege() {
+  const L = HW / Math.sin(Math.PI / 4), span = HW / (R - .08), n = 84, geo = new THREE.BoxGeometry(0.028, 0.028, L);
+  const im = new THREE.InstancedMesh(geo, kerMat, n * 2); const d = new THREE.Object3D(); let k = 0;
+  for (let i = 0; i < n; i++) for (const dirS of [1, -1]) {
+    const th = i / n * Math.PI * 2;
+    const t0 = th - dirS * span / 2, t1 = th + dirS * span / 2;
+    if (Math.min(Math.abs(Math.atan2(Math.sin(t0), Math.cos(t0))), Math.abs(Math.atan2(Math.sin(t1), Math.cos(t1))), Math.abs(Math.atan2(Math.sin(th), Math.cos(th)))) < GAP + .05) continue;
+    const rr = R - .08;
+    const a = new THREE.Vector3(Math.sin(t0) * rr, 0.02, Math.cos(t0) * rr), b = new THREE.Vector3(Math.sin(t1) * rr, HW - .04, Math.cos(t1) * rr);
+    d.position.copy(a).add(b).multiplyScalar(.5); d.lookAt(b); d.scale.set(1, 1, a.distanceTo(b) / L); d.updateMatrix();
+    im.setMatrixAt(k++, d.matrix);
+  }
+  im.count = k; yurt.add(im);
+})();
+(function uyks() {
+  const n = 72, geo = new THREE.CylinderGeometry(0.022, 0.03, 1, 6); geo.rotateX(Math.PI / 2);
+  const im = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0x8a2e1c, roughness: .55 }), n * 2); const d = new THREE.Object3D(); let k = 0;
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2;
+    const p0 = new THREE.Vector3(Math.sin(a) * (R - .1), HW - .05, Math.cos(a) * (R - .1));
+    const pk = new THREE.Vector3(Math.sin(a) * (R - .45), HW + .32, Math.cos(a) * (R - .45));
+    const p1 = new THREE.Vector3(Math.sin(a) * (RING + .02), TOP - .05, Math.cos(a) * (RING + .02));
+    for (const [s, e] of [[p0, pk], [pk, p1]]) { d.position.copy(s).add(e).multiplyScalar(.5); d.lookAt(e); d.scale.set(1, 1, s.distanceTo(e)); d.updateMatrix(); im.setMatrixAt(k++, d.matrix); }
+  }
+  yurt.add(im);
+})();
+const floor = new THREE.Mesh(new THREE.CircleGeometry(R - .03, 64), new THREE.MeshStandardMaterial({ map: tex("felt.jpg", 3, 3), color: 0x5a4430, roughness: 1 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = 0.005; floor.receiveShadow = true; yurt.add(floor);
+const tekT = tex("tekemet.jpg");
+[[0, -1.55, 0, 2.1], [-1.55, .15, Math.PI / 2, 1.8], [1.55, .15, Math.PI / 2, 1.8]].forEach(([x, z, r, s]) => {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s), new THREE.MeshStandardMaterial({ map: tekT, roughness: .95 }));
+  m.rotation.x = -Math.PI / 2; m.rotation.z = r; m.position.set(x, 0.012, z); m.receiveShadow = true; yurt.add(m);
+});
+const tus = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 1.4), new THREE.MeshStandardMaterial({ map: tex("tuskiiz.jpg"), roughness: .85, side: THREE.DoubleSide }));
+tus.position.set(0, 1.0, -(R - .3)); yurt.add(tus);
+
+// hearth & fire
+const stones = new THREE.MeshStandardMaterial({ color: 0x5a524a, roughness: 1 });
+for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.075 + Math.random() * .03), stones); s.position.set(Math.cos(a) * .36, .05, Math.sin(a) * .36); s.rotation.set(Math.random(), Math.random(), 0); yurt.add(s); }
+function glowTex(inner, outer) {
+  const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, inner); gr.addColorStop(.35, outer); gr.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c);
+}
+const fireT = glowTex("rgba(255,240,200,1)", "rgba(255,120,30,.55)");
+const FN = 160, fireGeo = new THREE.BufferGeometry(), fpos = new Float32Array(FN * 3), fdata = [];
+for (let i = 0; i < FN; i++) fdata.push({ life: Math.random(), sp: .5 + Math.random() * .7, x: (Math.random() - .5) * .3, z: (Math.random() - .5) * .3 });
+fireGeo.setAttribute("position", new THREE.BufferAttribute(fpos, 3));
+const fire = new THREE.Points(fireGeo, new THREE.PointsMaterial({ map: fireT, size: .28, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffa040 }));
+yurt.add(fire);
+const fireLight = new THREE.PointLight(0xff8a3a, 3.2, 8, 2); fireLight.position.set(0, .55, 0); yurt.add(fireLight);
+const kazanMat = new THREE.MeshStandardMaterial({ map: tex("kazan.webp"), transparent: true, alphaTest: .4, roughness: .7, side: THREE.DoubleSide });
+const kazan = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.64), kazanMat); kazan.position.set(0, .42, 0); yurt.add(kazan);
+
+// light shaft from shanyrak
+const shaftMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  uniforms: { t: { value: 0 }, op: { value: 0 } },
+  vertexShader: "varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+  fragmentShader: "uniform float t; uniform float op; varying vec2 vU; void main(){ float v = pow(vU.y, 1.4); float e = sin(vU.x*3.14159*2.0*6.0 + t*0.4)*0.08+0.92; gl_FragColor = vec4(vec3(1.0,0.86,0.6)*v*e*op*0.42, 1.0); }" });
+const shaft = new THREE.Mesh(new THREE.CylinderGeometry(RING * .92, 0.95, TOP, 48, 1, true), shaftMat);
+shaft.position.set(0.18, TOP / 2, 0.12); shaft.rotation.z = -0.06; shaft.rotation.x = 0.04; yurt.add(shaft);
+const shaftSpot = new THREE.SpotLight(0xffe2b0, 2.2, 10, 0.32, 0.6, 1.4); shaftSpot.position.set(0, TOP + 2, 0); shaftSpot.target.position.set(0.35, 0, 0.25); yurt.add(shaftSpot, shaftSpot.target);
+const DN = 260, dustGeo = new THREE.BufferGeometry(), dpos = new Float32Array(DN * 3);
+for (let i = 0; i < DN; i++) { const r = Math.random() * .8, a = Math.random() * 6.28; dpos[i * 3] = Math.cos(a) * r + .2; dpos[i * 3 + 1] = Math.random() * TOP; dpos[i * 3 + 2] = Math.sin(a) * r + .15; }
+dustGeo.setAttribute("position", new THREE.BufferAttribute(dpos, 3));
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ map: glowTex("rgba(255,245,220,1)", "rgba(255,220,160,.3)"), size: .035, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }));
+yurt.add(dust);
+const interiorAmb = new THREE.AmbientLight(0xffd2a0, 0);
+scene.add(interiorAmb);
+
+// ---------- hotspot items
+const halo = glowTex("rgba(255,214,140,.9)", "rgba(226,181,103,.25)");
+const raycastables = [];
+ITEMS.forEach((it, i) => {
+  const t = tex(it.img + ".webp");
+  const mat = new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: .45, roughness: .75, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: .22 });
+  const g = new THREE.Group();
+  const a = it.ang * Math.PI / 180, rr = it.floor ? 2.3 : 2.62;
+  g.position.set(Math.sin(a) * rr, 0, Math.cos(a) * rr);
+  g.lookAt(0, 0, 0);
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  plane.userData.idx = i;
+  g.add(plane);
+  if (it.table) {
+    const tb = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, .06, 32), wood); tb.position.y = .34; g.add(tb);
+    for (let l = 0; l < 3; l++) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .34, 8), wood); const la = l / 3 * 6.28; leg.position.set(Math.cos(la) * .3, .17, Math.sin(la) * .3); g.add(leg); }
+  }
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: halo, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: .0 }));
+  glow.position.z = -0.04; g.add(glow);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.28, .34, 48), new THREE.MeshBasicMaterial({ color: 0xe2b567, transparent: true, opacity: .0, side: THREE.DoubleSide, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.set(0, 0.02, 0.25); g.add(ring);
+  it.g = g; it.plane = plane; it.glow = glow; it.ring = ring; it.mat = mat;
+  yurt.add(g); raycastables.push(plane);
+});
+function sizeItems() {
+  ITEMS.forEach((it) => {
+    const img = it.mat.map.image; if (!img) return;
+    const ar = img.width / img.height, h = it.h, w = h * ar;
+    it.plane.scale.set(w, h, 1);
+    const baseY = it.floor ? h / 2 + .01 : (it.table ? .37 + h / 2 - .05 : it.y);
+    it.plane.position.y = baseY; it.plane.rotation.z = it.lean || 0;
+    if (it.table) { it.plane.rotation.x = -0.35; it.plane.position.z = 0.05; }
+    it.glow.scale.set(w * 1.7, h * 1.5, 1); it.glow.position.y = baseY;
+    it.anchor = new THREE.Vector3(0, baseY + h / 2 + .12, 0);
+  });
+  const ki = kazanMat.map.image; if (ki) kazan.scale.set(1, (0.72 / (ki.width / ki.height)) / .64, 1);
+}
+
+// ---------- labels & UI
+const labels = document.getElementById("labels"), dotsEl = document.getElementById("dots");
+ITEMS.forEach((it, i) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "hs";
+  b.innerHTML = `<b>${i + 1}</b><span>${it.short}</span>`; b.setAttribute("aria-label", `${i + 1}. ${it.title}`);
+  b.addEventListener("click", (e) => { e.stopPropagation(); focusItem(i); });
+  labels.appendChild(b); it.label = b;
+  const d = document.createElement("button"); d.type = "button"; d.className = "dot";
+  d.innerHTML = `<b>${i + 1}</b><span>${it.short}</span>`; d.addEventListener("click", () => focusItem(i));
+  dotsEl.appendChild(d); it.dot = d;
+});
+document.getElementById("sum").innerHTML = ITEMS.map((it, i) => `<div><b>${i + 1}</b><span><strong>${it.title}.</strong> ${it.lead.split(". ")[0].replace(/\.$/, "")}.</span></div>`).join("");
+const panel = document.getElementById("panel");
+function showPanel(i) {
+  const it = ITEMS[i];
+  document.getElementById("pNum").textContent = i + 1;
+  document.getElementById("pKick").textContent = it.kick;
+  document.getElementById("pTitle").textContent = it.title;
+  document.getElementById("pBody").innerHTML = `<p class="p-lead">${it.lead}</p><ul class="facts">${it.facts.map(([a, b]) => `<li><b>${a}</b>${b}</li>`).join("")}</ul>`;
+  document.getElementById("pBody").scrollTop = 0;
+  panel.classList.add("open");
+}
+
+// ---------- camera control
+let mode = "outside", cur = -1, orbitA = 0.35, yaw = Math.PI, pitch = -0.05, tween = null, t0 = performance.now(), doorOpen = 0, doorTarget = 0, interior = 0, interiorTarget = 0;
+const camPos = new THREE.Vector3(), camTgt = new THREE.Vector3();
+const ease = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+function lookDir() { return new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)); }
+function setFromDir(dir) { yaw = Math.atan2(dir.x, dir.z); pitch = Math.asin(Math.max(-1, Math.min(1, dir.y / dir.length()))); }
+// tween through keyframes [{p,t,d}] (position, target, duration ms)
+function fly(keys, done) {
+  const frames = [{ p: camera.position.clone(), t: camTgt.clone() }, ...keys];
+  tween = { frames, k: 1, start: performance.now(), done };
+}
+function stepTween(now) {
+  if (!tween) return false;
+  const a = tween.frames[tween.k - 1], b = tween.frames[tween.k];
+  const x = Math.min(1, (now - tween.start) / b.d), e = ease(x);
+  camera.position.lerpVectors(a.p, b.p, e); camTgt.lerpVectors(a.t, b.t, e); camera.lookAt(camTgt);
+  if (x >= 1) {
+    tween.k++; tween.start = now;
+    if (tween.k >= tween.frames.length) { const d = tween.done; tween = null; d && d(); }
+  }
+  return true;
+}
+const EYE = 1.35;
+function enter(then) {
+  if (mode !== "outside") { then && then(); return; }
+  mode = "entering"; document.getElementById("intro").hidden = true;
+  doorTarget = 1;
+  const ang = Math.atan2(Math.sin(orbitA), Math.cos(orbitA));
+  const arc = [2 / 3, 1 / 3].map((k) => ({ p: new THREE.Vector3(Math.sin(ang * k) * 9.5, 2.3, Math.cos(ang * k) * 9.5), t: new THREE.Vector3(0, 1.5, 0), d: 500 + Math.abs(ang) * 260 }));
+  fly([
+    ...arc,
+    { p: new THREE.Vector3(0, 1.55, 7.2), t: new THREE.Vector3(0, 1.2, 0), d: 1500 },
+    { p: new THREE.Vector3(0, 1.3, 3.6), t: new THREE.Vector3(0, 1.15, 0), d: 1300 },
+    { p: new THREE.Vector3(0, EYE, 1.0), t: new THREE.Vector3(0, 1.05, -2.5), d: 1600 },
+  ], () => {
+    mode = "inside"; setFromDir(camTgt.clone().sub(camera.position));
+    document.getElementById("hud").hidden = false; dotsEl.hidden = false;
+    const tst = document.getElementById("toast"); tst.hidden = false; setTimeout(() => (tst.style.opacity = 0), 3500);
+    then && then();
+  });
+  interiorTarget = 1;
+}
+function focusItem(i) {
+  if (mode === "outside") { enter(() => focusItem(i)); return; }
+  if (mode === "entering" || mode === "exiting") return;
+  i = (i + ITEMS.length) % ITEMS.length; cur = i; mode = "focus";
+  const it = ITEMS[i]; const wp = new THREE.Vector3(); it.plane.getWorldPosition(wp);
+  const dir = new THREE.Vector3(wp.x, 0, wp.z).normalize();
+  const camP = dir.clone().multiplyScalar(it.floor ? -0.15 : 0.45).setY(EYE - (it.floor ? .05 : 0));
+  const right = new THREE.Vector3(-dir.z, 0, dir.x);
+  const tgt = wp.clone().add(right.multiplyScalar(innerWidth > 760 ? 0.42 : 0)).setY(wp.y - (innerWidth > 760 ? 0 : 0.25));
+  fly([{ p: camP, t: tgt, d: 1100 }], () => { mode = "inside"; setFromDir(tgt.clone().sub(camera.position)); });
+  showPanel(i);
+  ITEMS.forEach((x, k) => { x.dot.classList.toggle("on", k === i); x.label.classList.toggle("on", k === i); });
+}
+function overview() {
+  if (mode === "outside" || mode === "entering" || mode === "exiting") return;
+  panel.classList.remove("open"); cur = -1; ITEMS.forEach((x) => { x.dot.classList.remove("on"); x.label.classList.remove("on"); });
+  mode = "focus";
+  fly([{ p: new THREE.Vector3(0, EYE + .1, 1.4), t: new THREE.Vector3(0, 1.0, -2.4), d: 1000 }], () => { mode = "inside"; setFromDir(camTgt.clone().sub(camera.position)); });
+}
+function exitUp() {
+  if (mode === "outside" || mode === "entering" || mode === "exiting") return;
+  panel.classList.remove("open"); mode = "exiting"; dotsEl.hidden = true;
+  fly([
+    { p: new THREE.Vector3(0, 1.6, 0.25), t: new THREE.Vector3(0, TOP + 2, 0), d: 1100 },
+    { p: new THREE.Vector3(0, TOP + 0.6, 0.02), t: new THREE.Vector3(0, TOP + 6, -0.5), d: 1500 },
+    { p: new THREE.Vector3(5, 7.5, 12), t: new THREE.Vector3(0, 2.2, -8), d: 2800 },
+  ], () => { document.getElementById("final").hidden = false; document.getElementById("hud").hidden = true; mode = "final"; });
+  setTimeout(() => { interiorTarget = 0; }, 2400);
+}
+function back() {
+  document.getElementById("final").hidden = true; document.getElementById("hud").hidden = false; dotsEl.hidden = false;
+  mode = "focus"; interiorTarget = 1;
+  fly([{ p: new THREE.Vector3(0, TOP + 0.6, 0.02), t: new THREE.Vector3(0, 0, 0), d: 2000 }, { p: new THREE.Vector3(0, EYE + .1, 1.4), t: new THREE.Vector3(0, 1.0, -2.4), d: 1500 }],
+    () => { mode = "inside"; setFromDir(camTgt.clone().sub(camera.position)); });
+}
+document.getElementById("enter").addEventListener("click", () => enter());
+document.getElementById("overview").addEventListener("click", overview);
+document.getElementById("exit").addEventListener("click", exitUp);
+document.getElementById("back").addEventListener("click", back);
+document.getElementById("pPrev").addEventListener("click", () => focusItem(cur < 0 ? ITEMS.length - 1 : cur - 1));
+document.getElementById("pNext").addEventListener("click", () => focusItem(cur + 1));
+document.getElementById("pClose").addEventListener("click", overview);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && mode === "outside") { e.preventDefault(); enter(); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); focusItem(cur + 1); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); focusItem(cur < 0 ? ITEMS.length - 1 : cur - 1); }
+  else if (e.key === "Escape") overview();
+});
+
+// pointer: drag to look / orbit, click to pick
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+let down = null, hover = -1;
+canvas.addEventListener("pointerdown", (e) => { down = { x: e.clientX, y: e.clientY, yaw, pitch, orbitA, moved: false }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", (e) => {
+  if (down) {
+    const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) down.moved = true;
+    if (mode === "inside" && down.moved) { yaw = down.yaw - dx * 0.0042; pitch = Math.max(-0.9, Math.min(1.15, down.pitch + dy * 0.0035)); }
+    if (mode === "outside" && down.moved) orbitA = down.orbitA - dx * 0.004;
+  }
+  pick(e);
+});
+canvas.addEventListener("pointerup", (e) => { if (down && !down.moved && hover >= 0 && (mode === "inside" || mode === "focus")) focusItem(hover); down = null; });
+function pick(e) {
+  if (mode !== "inside") { setHover(-1); return; }
+  mouse.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(raycastables, false)[0];
+  setHover(hit ? hit.object.userData.idx : -1);
+}
+function setHover(i) { hover = i; canvas.style.cursor = i >= 0 ? "pointer" : (mode === "inside" || mode === "outside" ? "grab" : "default"); }
+
+// ---------- resize & loop
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < 700 ? 68 : 55; camera.updateProjectionMatrix(); }
+addEventListener("resize", resize); resize();
+camera.position.set(Math.sin(orbitA) * 10, 2.6, Math.cos(orbitA) * 10); camTgt.set(0, 1.6, 0); camera.lookAt(camTgt);
+const v3 = new THREE.Vector3();
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; const t = (now - t0) / 1000;
+  if (!stepTween(now)) {
+    if (mode === "outside") {
+      if (!down) orbitA += dt * 0.06;
+      camera.position.set(Math.sin(orbitA) * 10, 2.6 + Math.sin(t * .3) * .15, Math.cos(orbitA) * 10); camTgt.set(0, 1.6, 0); camera.lookAt(camTgt);
+    } else if (mode === "inside") {
+      camTgt.copy(camera.position).add(lookDir()); camera.lookAt(camTgt);
+    }
+  }
+  // door & interior blend
+  doorOpen += (doorTarget - doorOpen) * Math.min(1, dt * 2.2);
+  leaves.forEach(({ pivot, s }) => (pivot.rotation.y = -s * doorOpen * 1.45));
+  interior += (interiorTarget - interior) * Math.min(1, dt * 1.2);
+  shaftMat.uniforms.op.value = interior; shaftMat.uniforms.t.value = t; dust.material.opacity = interior * .8;
+  interiorAmb.intensity = interior * .12;
+  hemi.intensity = .65 - interior * .45; renderer.toneMappingExposure = 1.05 - interior * .1;
+  // fire
+  for (let i = 0; i < FN; i++) {
+    const f = fdata[i]; f.life += dt * f.sp; if (f.life > 1) { f.life = 0; f.x = (Math.random() - .5) * .3; f.z = (Math.random() - .5) * .3; }
+    const l = f.life; fpos[i * 3] = f.x * (1 - l) + Math.sin(t * 3 + i) * .02; fpos[i * 3 + 1] = .06 + l * .55; fpos[i * 3 + 2] = f.z * (1 - l);
+  }
+  fireGeo.attributes.position.needsUpdate = true;
+  fireLight.intensity = 3.0 + Math.sin(t * 13) * .25 + Math.sin(t * 7.3) * .2 + Math.random() * .15;
+  for (let i = 0; i < DN; i++) { dpos[i * 3 + 1] += dt * .03; if (dpos[i * 3 + 1] > TOP) dpos[i * 3 + 1] = 0; dpos[i * 3] += Math.sin(t + i) * dt * .01; }
+  dustGeo.attributes.position.needsUpdate = true;
+  kazan.lookAt(camera.position.x, kazan.position.y, camera.position.z);
+  // hotspots
+  const inside = mode !== "outside" && mode !== "final" && camera.position.length() < R + .5;
+  ITEMS.forEach((it, i) => {
+    const active = i === cur || i === hover;
+    const target = inside ? (active ? .55 : .18 + Math.sin(t * 2 + i) * .06) : 0;
+    it.glow.material.opacity += (target - it.glow.material.opacity) * Math.min(1, dt * 5);
+    it.mat.emissiveIntensity = .22 + (active ? .25 : 0);
+    it.ring.material.opacity = inside ? .35 + Math.sin(t * 3 + i) * .2 : 0;
+    // label
+    if (!it.anchor) { it.label.style.display = "none"; return; }
+    v3.copy(it.anchor); it.g.localToWorld(v3);
+    const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+    const vis = inside && i !== cur && v3.clone().sub(camera.position).dot(camDir) > 0;
+    v3.project(camera);
+    if (!vis || Math.abs(v3.x) > 1.1 || Math.abs(v3.y) > 1.1) { it.label.style.display = "none"; return; }
+    it.label.style.display = "flex";
+    it.label.style.transform = `translate(${(v3.x * .5 + .5) * innerWidth}px, ${(-v3.y * .5 + .5) * innerHeight}px) translate(-17px,-50%)`;
+  });
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+manager.onLoad = () => {
+  sizeItems();
+  document.getElementById("loading").classList.add("done");
+};
+setTimeout(() => { sizeItems(); document.getElementById("loading").classList.add("done"); }, 12000);
+window.__yurt = { focusItem, overview, exitUp, back, enter, get mode() { return mode; }, get cur() { return cur; }, ITEMS };
+requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
